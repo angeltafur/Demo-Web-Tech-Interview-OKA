@@ -23,7 +23,22 @@ export class BasePage {
     // This methos is used to send text to the element
     protected async sendText(element: Locator, text: string): Promise<void> {
         this.waitForElementVisible(element);
-        await element.fill(text);
+        if (await element.isEnabled()) {
+            await element.fill(text);
+        } else {
+            throw new Error(`Element with selector "${element}" is not enabled`);
+        }
+    }
+
+    // This methos is used to send text to the element
+    protected async sendSuggestedText(element: Locator, text: string): Promise<void> {
+        this.waitForElementVisible(element);
+        if (await element.isEnabled()) {
+            await element.pressSequentially(text);
+        } else {
+            throw new Error(`Element with selector "${element}" is not enabled`);
+        }
+        this.page.waitForLoadState('networkidle');
     }
 
     // This method is used to click on the element
@@ -44,5 +59,21 @@ export class BasePage {
     // This method is used to assert that the element is visible
     protected async assertElementIsVisible(element: Locator): Promise<void> {
         await expect(element).toBeVisible();
+    }
+
+    // This method is used to wait for the element to be present in the DOM
+    protected async waitForElementPresent(element: Locator): Promise<void> {
+        try {
+            await this.page.waitForLoadState('networkidle'); 
+            await element.waitFor({ state: 'attached', timeout: this.waitDuration });
+        } catch (error) {
+            throw new Error(`Element with selector "${element}" is not present in the DOM after waiting for ${this.waitDuration / 1000} seconds`);
+        }
+    }
+
+    // This method is used to select an option from the suggested list
+    protected async selectOptionFromSuggestedList(suggestedList: Locator, option: string): Promise<void> {
+        const optionElement: Locator = suggestedList.getByRole('option', { name: option });
+        await this.clickElement(optionElement);
     }
 }
